@@ -1,0 +1,20 @@
+.hero-tag {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  background: rgba(79, 70, 229, 0.08); /* light indigo tint */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+
+}
+
+.hero-tag:hover {
+  transform: translateY(-2px);
+  background: rgba(79, 70, 229, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
