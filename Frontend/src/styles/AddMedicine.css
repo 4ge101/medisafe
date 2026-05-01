@@ -1,0 +1,173 @@
+.add-page {
+  padding: 24px 20px 100px;
+}
+
+.add-page h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.add-page .subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 28px;
+}
+
+.form-group {
+  margin-bottom: 22px;
+}
+
+.form-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  font-size: 16px;
+  background: var(--card-bg);
+  color: var(--text);
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.time-btn {
+  padding: 16px 10px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--card-bg);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.time-btn:hover {
+  border-color: var(--primary);
+}
+
+.time-btn.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.time-btn-icon {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.time-btn-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.voice-input-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--hover-bg);
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 8px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.voice-input-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.voice-input-btn.listening {
+  border-color: #f44336;
+  color: #f44336;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.submit-btn {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.01);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.success-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4CAF50;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 15px;
+  z-index: 200;
+  animation: toastIn 0.3s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.simple-mode .form-input { font-size: 18px; padding: 18px; }
+.simple-mode .form-label { font-size: 18px; }
+.simple-mode .time-btn-label { font-size: 15px; }
+.simple-mode .time-btn-icon { font-size: 34px; }
