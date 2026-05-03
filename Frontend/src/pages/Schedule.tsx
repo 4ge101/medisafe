@@ -1,101 +1,91 @@
 import "../styles/Schedule.css";
 import { useApp } from "../context/AppContext";
-import { getTimeSlotLabel, speak, todayStr } from "../utils/helpers";
+import { speak, todayStr } from "../utils/helpers";
 
 export default function Schedule() {
   const { settings, getTodayDoses, markDose } = useApp();
   const doses = getTodayDoses();
   const today = todayStr();
 
-  const handleTake = (medicineId: string, timeSlot: string, medicineName: string) => {
-    markDose(medicineId, today, timeSlot, "taken");
-    if (settings.voiceEnabled) {
-      speak(`Great! ${medicineName} marked as taken.`);
-    }
+  const taken = doses.filter((d) => d.record.status === "taken").length;
+  const total = doses.length;
+  const pct = total === 0 ? 0 : Math.round((taken / total) * 100);
+  const allDone = total > 0 && doses.every((d) => d.record.status === "taken");
+
+  const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  const handleTake = (medicineId: string, slot: string, name: string) => {
+    markDose(medicineId, today, slot, "taken");
+    if (settings.voiceEnabled) speak(`Great! ${name} marked as taken.`);
   };
 
-  const handleMiss = (medicineId: string, timeSlot: string) => {
-    markDose(medicineId, today, timeSlot, "missed");
-  };
-
-  const todayLabel = new Date().toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric",
-  });
-
-  // group by time slot order
   const order = ["morning", "afternoon", "night", "custom"];
-  const sorted = [...doses].sort((a, b) => {
-    return order.indexOf(a.record.timeSlot) - order.indexOf(b.record.timeSlot);
+  const sorted = [...doses].sort((a, b) => order.indexOf(a.record.timeSlot) - order.indexOf(b.record.timeSlot));
+
+  const groups: Record<string, typeof sorted> = {};
+  sorted.forEach((d) => {
+    const s = d.record.timeSlot;
+    if (!groups[s]) groups[s] = [];
+    groups[s].push(d);
   });
 
-  const takenAll = doses.length > 0 && doses.every(d => d.record.status === "taken");
+  const slotName: Record<string, string> = {
+    morning: "🌅 Morning",
+    afternoon: "☀️ Afternoon",
+    night: "🌙 Night",
+    custom: "⏰ Custom",
+  };
 
   return (
-    <div className={`schedule-page ${settings.simpleMode ? "simple-mode" : ""}`}>
-      <h1>Today's Schedule</h1>
-      <p className="date-str">📅 {todayLabel}</p>
+    <div className={`sch-page ${settings.simpleMode ? "simple-mode" : ""}`}>
+      <div className="sch-hero">
+        <h1>Today's Schedule</h1>
+        <div className="sch-date">📅 {dateLabel}</div>
+        <div className="prog-bg"><div className="prog-fill" style={{ width: `${pct}%` }} /></div>
+        <div className="prog-lbl">{taken} of {total} doses taken · {pct}%</div>
+      </div>
 
-      {takenAll && (
-        <div style={{
-          background: "#4CAF5015", border: "2px solid #4CAF5055",
-          borderRadius: 16, padding: "16px 20px", marginBottom: 20,
-          textAlign: "center",
-        }}>
-          <p style={{ margin: 0, fontWeight: 700, color: "#2e7d32", fontSize: 16 }}>
-            🎉 All medicines taken! Great job!
-          </p>
-        </div>
-      )}
+      <div className="sch-body">
+        {allDone && <div className="all-done-banner"><p>🎉 All medicines taken today! Great job!</p></div>}
 
-      {doses.length === 0 ? (
-        <div className="empty-schedule">
-          <span style={{ fontSize: 64 }}>🌟</span>
-          <p>No medicines scheduled for today.</p>
-          <p style={{ fontSize: 13 }}>Add medicines to see your schedule here.</p>
-        </div>
-      ) : (
-        sorted.map(({ medicine, record }) => (
-          <div key={`${medicine.id}-${record.timeSlot}`} className={`dose-card ${record.status}`}>
-            <div
-              className="dose-icon-wrap"
-              style={{ background: medicine.color + "22" }}
-            >
-              {medicine.icon}
-            </div>
-
-            <div className="dose-info">
-              <p className="dose-name">{medicine.name}</p>
-              <p className="dose-meta">{medicine.dosage}</p>
-              <p className="dose-meta">{getTimeSlotLabel(record.timeSlot)}</p>
-            </div>
-
-            <div className="dose-action">
-              {record.status === "pending" && (
-                <>
-                  <button className="btn-take" onClick={() => handleTake(medicine.id, record.timeSlot, medicine.name)}>
-                    ✅ Take
-                  </button>
-                  <button
-                    onClick={() => handleMiss(medicine.id, record.timeSlot)}
-                    style={{
-                      background: "none", border: "none", fontSize: 12,
-                      color: "var(--text-muted)", cursor: "pointer", textDecoration: "underline",
-                    }}
-                  >
-                    Skip
-                  </button>
-                </>
-              )}
-              {record.status === "taken" && (
-                <span className="status-badge taken">✅ Taken</span>
-              )}
-              {record.status === "missed" && (
-                <span className="status-badge missed">❌ Missed</span>
-              )}
-            </div>
+        {total === 0 ? (
+          <div className="sch-empty">
+            <span style={{ fontSize: 48, display: "block", marginBottom: 10 }}>🌟</span>
+            <strong style={{ fontSize: 16, color: "var(--text)" }}>Nothing scheduled today</strong>
+            <p style={{ fontSize: 13, color: "var(--text3)", marginTop: 6 }}>Add medicines to see your daily schedule here.</p>
           </div>
-        ))
-      )}
+        ) : (
+          Object.entries(groups).map(([slot, items]) => (
+            <div key={slot}>
+              <div className="slot-lbl">{slotName[slot] || slot}</div>
+              {items.map(({ medicine: m, record: r }, i) => (
+                <div key={`${m.id}-${r.timeSlot}`} className={`dose-card ${r.status}`} style={{ animationDelay: `${i * 0.06}s` }}>
+                  <div className="dose-icon" style={{ background: m.color + "22" }}>{m.icon}</div>
+                  <div className="dose-body">
+                    <div className="dose-name">{m.name}</div>
+                    <div className="dose-sub">{m.dosage}</div>
+                    {r.status === "taken" && r.takenAt && (
+                      <div className="dose-taken-at">
+                        Taken at {new Date(r.takenAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="dose-right">
+                    {r.status === "pending" && (
+                      <>
+                        <button className="take-btn" onClick={() => handleTake(m.id, r.timeSlot, m.name)}>✅ Take</button>
+                        <button className="skip-btn" onClick={() => markDose(m.id, today, r.timeSlot, "missed")}>Skip</button>
+                      </>
+                    )}
+                    {r.status === "taken" && <span className="status-pill taken">✅ Taken</span>}
+                    {r.status === "missed" && <span className="status-pill missed">❌ Missed</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

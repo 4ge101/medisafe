@@ -14,8 +14,8 @@ export interface Medicine {
 
 export interface DoseRecord {
   medicineId: string;
-  date: string; // YYYY-MM-DD
-  timeSlot: TimeSlot;
+  date: string;
+  timeSlot: string;
   status: "taken" | "missed" | "pending";
   takenAt?: string;
 }

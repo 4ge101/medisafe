@@ -22,121 +22,78 @@ const defaultSettings: AppSettings = {
   snoozeMinutes: 5,
 };
 
-const MEDICINE_COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8"];
-const MEDICINE_ICONS = ["💊", "💉", "🩺", "🌿", "🧪", "💙", "⭐"];
+function load<T>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [medicines, setMedicines] = useState<Medicine[]>(() => {
-    try {
-      const saved = localStorage.getItem("medisafe_medicines");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [medicines, setMedicines] = useState<Medicine[]>(() => load("ms_meds", []));
+  const [doseRecords, setDoseRecords] = useState<DoseRecord[]>(() => load("ms_doses", []));
+  const [settings, setSettings] = useState<AppSettings>(() => ({ ...defaultSettings, ...load("ms_cfg", {}) }));
 
-  const [doseRecords, setDoseRecords] = useState<DoseRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem("medisafe_doses");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  useEffect(() => { localStorage.setItem("ms_meds", JSON.stringify(medicines)); }, [medicines]);
+  useEffect(() => { localStorage.setItem("ms_doses", JSON.stringify(doseRecords)); }, [doseRecords]);
+  useEffect(() => { localStorage.setItem("ms_cfg", JSON.stringify(settings)); }, [settings]);
 
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    try {
-      const saved = localStorage.getItem("medisafe_settings");
-      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
-    } catch {
-      return defaultSettings;
-    }
-  });
-
+  // auto night mode
   useEffect(() => {
-    localStorage.setItem("medisafe_medicines", JSON.stringify(medicines));
-  }, [medicines]);
-
-  useEffect(() => {
-    localStorage.setItem("medisafe_doses", JSON.stringify(doseRecords));
-  }, [doseRecords]);
-
-  useEffect(() => {
-    localStorage.setItem("medisafe_settings", JSON.stringify(settings));
-  }, [settings]);
-
-  // Auto night mode based on time
-  useEffect(() => {
-    const checkTime = () => {
-      const hour = new Date().getHours();
-      const isNight = hour >= 20 || hour < 6;
-      setSettings(prev => ({ ...prev, nightMode: isNight }));
+    const check = () => {
+      const h = new Date().getHours();
+      const isNight = h >= 20 || h < 6;
+      setSettings((prev) => ({ ...prev, nightMode: isNight }));
     };
-    checkTime();
-    const timer = setInterval(checkTime, 60000);
-    return () => clearInterval(timer);
+    check();
+    const t = setInterval(check, 60000);
+    return () => clearInterval(t);
   }, []);
 
   const addMedicine = (med: Medicine) => {
-    const colorIndex = medicines.length % MEDICINE_COLORS.length;
-    const iconIndex = medicines.length % MEDICINE_ICONS.length;
-    setMedicines(prev => [...prev, {
-      ...med,
-      color: med.color || MEDICINE_COLORS[colorIndex],
-      icon: med.icon || MEDICINE_ICONS[iconIndex],
-    }]);
+    setMedicines((prev) => [...prev, med]);
   };
 
   const deleteMedicine = (id: string) => {
-    setMedicines(prev => prev.filter(m => m.id !== id));
+    setMedicines((prev) => prev.filter((m) => m.id !== id));
   };
 
   const markDose = (medicineId: string, date: string, timeSlot: string, status: "taken" | "missed") => {
-    setDoseRecords(prev => {
-      const existing = prev.findIndex(
-        r => r.medicineId === medicineId && r.date === date && r.timeSlot === timeSlot
-      );
-      const newRecord: DoseRecord = {
+    setDoseRecords((prev) => {
+      const idx = prev.findIndex((r) => r.medicineId === medicineId && r.date === date && r.timeSlot === timeSlot);
+      const rec: DoseRecord = {
         medicineId,
         date,
-        timeSlot: timeSlot as any,
+        timeSlot,
         status,
         takenAt: status === "taken" ? new Date().toISOString() : undefined,
       };
-      if (existing >= 0) {
+      if (idx >= 0) {
         const updated = [...prev];
-        updated[existing] = newRecord;
+        updated[idx] = rec;
         return updated;
       }
-      return [...prev, newRecord];
+      return [...prev, rec];
     });
   };
 
   const updateSettings = (s: Partial<AppSettings>) => {
-    setSettings(prev => ({ ...prev, ...s }));
+    setSettings((prev) => ({ ...prev, ...s }));
   };
 
   const getTodayDoses = () => {
     const today = new Date().toISOString().split("T")[0];
     const result: { medicine: Medicine; record: DoseRecord }[] = [];
-
-    medicines.forEach(med => {
+    medicines.forEach((med) => {
       if (med.startDate <= today && med.endDate >= today) {
-        const timeSlots = med.timeSlot === "custom" ? ["custom"] : [med.timeSlot];
-        timeSlots.forEach(slot => {
-          const record = doseRecords.find(
-            r => r.medicineId === med.id && r.date === today && r.timeSlot === slot
-          ) || {
-            medicineId: med.id,
-            date: today,
-            timeSlot: slot as any,
-            status: "pending" as const,
-          };
-          result.push({ medicine: med, record });
-        });
+        const record = doseRecords.find(
+          (r) => r.medicineId === med.id && r.date === today && r.timeSlot === med.timeSlot
+        ) || { medicineId: med.id, date: today, timeSlot: med.timeSlot, status: "pending" as const };
+        result.push({ medicine: med, record });
       }
     });
-
     return result;
   };
 
@@ -146,26 +103,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const date = d.toISOString().split("T")[0];
-      const dayRecords = doseRecords.filter(r => r.date === date);
-      const taken = dayRecords.filter(r => r.status === "taken").length;
-      const total = medicines.filter(m => m.startDate <= date && m.endDate >= date).length;
+      const taken = doseRecords.filter((r) => r.date === date && r.status === "taken").length;
+      const total = medicines.filter((m) => m.startDate <= date && m.endDate >= date).length;
       history.push({ date, taken, total });
     }
     return history;
   };
 
   return (
-    <AppContext.Provider value={{
-      medicines,
-      doseRecords,
-      settings,
-      addMedicine,
-      deleteMedicine,
-      markDose,
-      updateSettings,
-      getTodayDoses,
-      getHistory,
-    }}>
+    <AppContext.Provider value={{ medicines, doseRecords, settings, addMedicine, deleteMedicine, markDose, updateSettings, getTodayDoses, getHistory }}>
       {children}
     </AppContext.Provider>
   );
@@ -173,6 +119,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 export function useApp() {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used inside AppProvider");
+  if (!ctx) throw new Error("useApp must be inside AppProvider");
   return ctx;
 }

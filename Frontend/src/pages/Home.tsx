@@ -1,93 +1,92 @@
 import "../styles/Home.css";
 import { useApp } from "../context/AppContext";
-import { getTimeSlotLabel } from "../utils/helpers";
+import { getSlotShortTime, todayStr } from "../utils/helpers";
 
 interface Props {
   onNavigate: (page: string) => void;
 }
 
 export default function Home({ onNavigate }: Props) {
-  const { medicines, deleteMedicine, settings, getTodayDoses } = useApp();
+  const { medicines, deleteMedicine, settings, getTodayDoses, doseRecords } = useApp();
 
   const todayDoses = getTodayDoses();
-  const takenCount = todayDoses.filter(d => d.record.status === "taken").length;
-  const totalCount = todayDoses.length;
+  const taken = todayDoses.filter((d) => d.record.status === "taken").length;
+  const pending = todayDoses.filter((d) => d.record.status === "pending").length;
+  const total = todayDoses.length;
+  const pct = total === 0 ? 0 : Math.round((taken / total) * 100);
 
-  const hour = new Date().getHours();
-  let greeting = "Good morning";
-  if (hour >= 12 && hour < 17) greeting = "Good afternoon";
-  else if (hour >= 17) greeting = "Good evening";
+  const h = new Date().getHours();
+  const greeting = h < 12 ? "Good morning 👋" : h < 17 ? "Good afternoon 👋" : "Good evening 👋";
+
+  const upcoming = todayDoses.filter((d) => d.record.status === "pending").slice(0, 3);
+  const today = todayStr();
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`Remove ${name} from your medicines?`)) {
-      deleteMedicine(id);
-    }
+    if (confirm(`Remove "${name}" from your medicines?`)) deleteMedicine(id);
   };
 
   return (
     <div className={`home-page ${settings.simpleMode ? "simple-mode" : ""}`}>
-      <div className="home-header">
-        <div>
-          <p className="greeting">{greeting} 👋</p>
-          <h1 className="app-title">Medi<span>Safe</span></h1>
-        </div>
-        <span className="header-icon">💊</span>
-      </div>
-
-      <div className="stats-row">
-        <div className="stat-card">
-          <span className="stat-number">{takenCount}</span>
-          <span className="stat-label">Taken Today</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-number" style={{ color: "var(--accent)" }}>
-            {totalCount - takenCount}
-          </span>
-          <span className="stat-label">Remaining</span>
+      <div className="home-hero">
+        <div className="greeting">{greeting}</div>
+        <h1>MediSafe 💊</h1>
+        <div className="stats-grid">
+          <div className="stat-box"><div className="stat-num">{taken}</div><div className="stat-lbl">Taken</div></div>
+          <div className="stat-box"><div className="stat-num">{pending}</div><div className="stat-lbl">Pending</div></div>
+          <div className="stat-box"><div className="stat-num">{pct}%</div><div className="stat-lbl">Today</div></div>
         </div>
       </div>
 
-      <h2 className="section-title">My Medicines ({medicines.length})</h2>
+      <div className="home-body">
+        {upcoming.length > 0 && (
+          <div className="upcoming-box">
+            <div className="upcoming-title">⏰ Coming up today</div>
+            {upcoming.map(({ medicine: m, record: r }) => (
+              <div key={m.id} className="upcoming-row">
+                <div className="up-dot" style={{ background: m.color }} />
+                <span className="up-name">{m.icon} {m.name}</span>
+                <span className="up-time">{getSlotShortTime(r.timeSlot)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {medicines.length === 0 ? (
-        <div className="empty-state">
-          <span style={{ fontSize: 60 }}>💊</span>
-          <p>No medicines added yet.</p>
-          <p style={{ fontSize: 14 }}>Add your first medicine to get started!</p>
-          <button className="quick-add-btn" onClick={() => onNavigate("add")}>
-            + Add Medicine
-          </button>
+        <div className="sec-head">
+          <span className="sec-title">My Medicines</span>
+          <span className="sec-badge">{medicines.length} total</span>
         </div>
-      ) : (
-        <div className="medicine-cards">
-          {medicines.map(med => (
-            <div key={med.id} className="med-card">
-              <div
-                className="med-icon-circle"
-                style={{ background: med.color + "22" }}
-              >
-                {med.icon}
+
+        {medicines.length === 0 ? (
+          <div className="empty-box">
+            <span className="empty-icon">💊</span>
+            <h3>No medicines yet</h3>
+            <p>Add your first medicine and MediSafe will remind you every day.</p>
+            <button className="btn-green" onClick={() => onNavigate("add")}>+ Add Medicine</button>
+          </div>
+        ) : (
+          medicines.map((med, i) => {
+            const rec = doseRecords.find((r) => r.medicineId === med.id && r.date === today && r.timeSlot === med.timeSlot);
+            const status = rec?.status;
+            return (
+              <div key={med.id} className="med-card fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                <div className="med-icon" style={{ background: med.color + "22" }}>{med.icon}</div>
+                <div className="med-body">
+                  <div className="med-name">{med.name}</div>
+                  <div className="tags">
+                    <span className="tag">{med.dosage}</span>
+                    <span className="tag">
+                      {med.timeSlot === "morning" ? "🌅 Morning" : med.timeSlot === "afternoon" ? "☀️ Afternoon" : med.timeSlot === "night" ? "🌙 Night" : "⏰ Custom"}
+                    </span>
+                    {status === "taken" && <span className="tag tag-green">✅ Taken</span>}
+                    {status === "missed" && <span className="tag tag-red">❌ Missed</span>}
+                  </div>
+                </div>
+                <button className="del-btn" onClick={() => handleDelete(med.id, med.name)}>🗑️</button>
               </div>
-              <div className="med-info">
-                <p className="med-name">{med.name}</p>
-                <p className="med-detail">
-                  {med.dosage} · {getTimeSlotLabel(med.timeSlot)}
-                </p>
-                <p className="med-detail" style={{ fontSize: 12, marginTop: 2 }}>
-                  Until {new Date(med.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </p>
-              </div>
-              <button
-                className="med-delete"
-                onClick={() => handleDelete(med.id, med.name)}
-                title="Remove medicine"
-              >
-                🗑️
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

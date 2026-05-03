@@ -16,46 +16,41 @@ type Page = "home" | "add" | "schedule" | "history" | "settings";
 function AppInner() {
   const [page, setPage] = useState<Page>("home");
   const { settings, medicines, markDose } = useApp();
+  const [activeReminder, setActiveReminder] = useState<{ medicine: Medicine; timeSlot: string } | null>(null);
+  const firedRef = useRef<Set<string>>(new Set());
 
-  // reminder state
-  const [activeReminder, setActiveReminder] = useState<{
-    medicine: Medicine;
-    timeSlot: string;
-  } | null>(null);
-  const snoozeTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  // check for reminders every 30 seconds
   useEffect(() => {
-    const checkReminders = () => {
+    const check = () => {
       const now = new Date();
-      const today = todayStr();
-
-      medicines.forEach(med => {
-        if (med.startDate > today || med.endDate < today) return;
-
-        const slots = med.timeSlot === "custom"
-          ? [{ slot: "custom", hour: parseInt(med.customTime?.split(":")[0] || "8"), minute: parseInt(med.customTime?.split(":")[1] || "0") }]
-          : [{ slot: med.timeSlot, ...getTimeSlotTime(med.timeSlot) }];
-
-        slots.forEach(({ slot, hour, minute }) => {
-          const schedHour = now.getHours() === hour;
-          const schedMin = now.getMinutes() === minute || now.getMinutes() === minute + 1;
-
-          if (schedHour && schedMin) {
-            const key = `${med.id}_${slot}_${today}`;
-            if (!snoozeTimers.current[key + "_done"]) {
-              snoozeTimers.current[key + "_done"] = setTimeout(() => {}, 0); // mark as triggered
-              setActiveReminder({ medicine: med, timeSlot: slot });
-            }
+      const t = todayStr();
+      medicines.forEach((med) => {
+        if (med.startDate > t || med.endDate < t) return;
+        const { hour, minute } = getTimeSlotTime(med.timeSlot, med.customTime);
+        if (now.getHours() === hour && now.getMinutes() === minute) {
+          const key = `${med.id}_${med.timeSlot}_${t}`;
+          if (!firedRef.current.has(key)) {
+            firedRef.current.add(key);
+            setActiveReminder({ medicine: med, timeSlot: med.timeSlot });
           }
-        });
+        }
       });
     };
-
-    checkReminders();
-    const timer = setInterval(checkReminders, 30000);
+    check();
+    const timer = setInterval(check, 30000);
     return () => clearInterval(timer);
   }, [medicines]);
+
+  useEffect(() => {
+    const checkNight = () => {
+      const h = new Date().getHours();
+      if (h >= 20 || h < 6) {
+        // night mode auto-handled in context
+      }
+    };
+    checkNight();
+    const t = setInterval(checkNight, 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const handleTaken = () => {
     if (!activeReminder) return;
@@ -67,32 +62,24 @@ function AppInner() {
     const rem = activeReminder;
     if (!rem) return;
     setActiveReminder(null);
-    setTimeout(() => {
-      setActiveReminder(rem);
-    }, settings.snoozeMinutes * 60 * 1000);
-  };
-
-  const handleDismiss = () => {
-    setActiveReminder(null);
+    setTimeout(() => setActiveReminder(rem), settings.snoozeMinutes * 60 * 1000);
   };
 
   return (
-    <div className={`app-shell ${settings.nightMode ? "night-mode" : ""}`}>
+    <div className={`app-shell ${settings.nightMode ? "night-mode" : ""} ${settings.simpleMode ? "simple-mode" : ""}`}>
       {page === "home" && <Home onNavigate={(p) => setPage(p as Page)} />}
       {page === "add" && <AddMedicine onDone={() => setPage("home")} />}
       {page === "schedule" && <Schedule />}
       {page === "history" && <History />}
       {page === "settings" && <Settings />}
-
       <Navbar current={page} onChange={setPage} />
-
       {activeReminder && (
         <ReminderPopup
           medicine={activeReminder.medicine}
           timeSlot={activeReminder.timeSlot}
           onTaken={handleTaken}
           onSnooze={handleSnooze}
-          onDismiss={handleDismiss}
+          onDismiss={() => setActiveReminder(null)}
         />
       )}
     </div>

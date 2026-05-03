@@ -1,83 +1,62 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Baloo+2:wght@400..800&family=Boldonse&family=Bungee&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rubik+Storm&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");
-
-body {
-  font-family: "Poppins", sans-serif;
-}
-
-
-/* ---- Google Fonts ---- */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
-
-/* ---- CSS Variables: Light Mode ---- */
 :root {
-  --primary: #2979FF;
-  --accent: #FF6D00;
+  --primary: #00b894;
+  --primary-dark: #00a381;
+  --primary-glow: rgba(0, 184, 148, 0.15);
+  --danger: #d63031;
+  --warning: #e17055;
+  --blue: #0984e3;
   --text: #1a1a2e;
-  --text-muted: #6b7280;
-  --bg: #f4f6fb;
-  --card-bg: #ffffff;
-  --border: #e5e7eb;
-  --hover-bg: #f0f4ff;
+  --text2: #636e72;
+  --text3: #aaa;
+  --bg: #f5f6fa;
+  --card: #fff;
+  --border: #eee;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --radius: 14px;
 }
 
-/* ---- Night / Dark Mode ---- */
 .night-mode {
-  --primary: #5c9aff;
-  --accent: #ffab40;
-  --text: #eef2ff;
-  --text-muted: #9ca3af;
-  --bg: #0f172a;
-  --card-bg: #1e293b;
-  --border: #334155;
-  --hover-bg: #263348;
+  --text: #e8f1f8;
+  --text2: #8fa8bc;
+  --text3: #556b7d;
+  --bg: #0a1628;
+  --card: #132035;
+  --border: rgba(255,255,255,0.08);
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-/* ---- Base Reset ---- */
-*, *::before, *::after {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 body {
-  margin: 0;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
-  transition: background 0.4s, color 0.4s;
+  -webkit-font-smoothing: antialiased;
 }
 
-button {
-  font-family: 'Nunito', sans-serif;
-}
+button, input, select, textarea { font-family: inherit; }
 
-input, select, textarea {
-  font-family: 'Nunito', sans-serif;
-}
-
-/* ---- App Shell ---- */
 .app-shell {
-  max-width: 480px;
+  max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
-  position: relative;
   background: var(--bg);
+  position: relative;
+  transition: background 0.3s;
 }
 
-/* ---- Scrollbar ---- */
-::-webkit-scrollbar {
-  width: 4px;
+.page { padding-bottom: 80px; min-height: 100vh; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
+.fade-up { animation: fadeUp 0.3s ease forwards; }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.simple-mode { font-size: 18px; }
+.simple-mode button { min-height: 50px; font-size: 16px; }

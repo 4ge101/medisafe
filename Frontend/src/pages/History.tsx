@@ -1,5 +1,6 @@
 import "../styles/History.css";
 import { useApp } from "../context/AppContext";
+import { formatDate, todayStr } from "../utils/helpers";
 
 export default function History() {
   const { settings, getHistory } = useApp();
@@ -7,74 +8,79 @@ export default function History() {
 
   const totalTaken = history.reduce((s, d) => s + d.taken, 0);
   const totalDoses = history.reduce((s, d) => s + d.total, 0);
-  const adherencePct = totalDoses === 0 ? 0 : Math.round((totalTaken / totalDoses) * 100);
+  const adhPct = totalDoses === 0 ? 0 : Math.round((totalTaken / totalDoses) * 100);
+  const maxTotal = Math.max(...history.map((d) => d.total), 1);
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const maxTotal = Math.max(...history.map(d => d.total), 1);
-
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  const getColor = (taken: number, total: number) => {
+  function barColor(taken: number, total: number) {
     if (total === 0) return "var(--border)";
-    const ratio = taken / total;
-    if (ratio >= 0.8) return "#4CAF50";
-    if (ratio >= 0.5) return "#FF9800";
-    return "#f44336";
-  };
+    const r = taken / total;
+    if (r >= 0.8) return "#00b894";
+    if (r >= 0.5) return "#ffa502";
+    return "#d63031";
+  }
 
-  const formatHistoryDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const today = new Date();
-    const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
-    if (diff === 0) return "Today";
-    if (diff === 1) return "Yesterday";
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  };
+  let streak = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].total > 0 && history[i].taken === history[i].total) streak++;
+    else if (history[i].total > 0) break;
+  }
 
   return (
-    <div className={`history-page ${settings.simpleMode ? "simple-mode" : ""}`}>
-      <h1>Medicine History</h1>
-      <p className="subtitle">Your last 7 days</p>
-
-      <div className="adherence-circle">
-        <span className="adherence-pct">{adherencePct}%</span>
-        <span className="adherence-label">Adherence</span>
+    <div className={`hist-page ${settings.simpleMode ? "simple-mode" : ""}`}>
+      <div className="hist-hero">
+        <h1>Medicine History</h1>
+        <p>Last 7 days overview</p>
+        <div className="adh-row">
+          <div className="adh-ring"><span className="adh-pct">{adhPct}%</span></div>
+          <div className="adh-info">
+            <strong>Weekly Adherence</strong>
+            <span>{totalTaken} of {totalDoses} doses taken</span>
+          </div>
+        </div>
       </div>
 
-      <div className="week-bars">
-        {history.map((day) => {
-          const d = new Date(day.date);
-          const barHeight = day.total === 0 ? 6 : Math.max(12, (day.taken / maxTotal) * 90);
-          return (
-            <div key={day.date} className="day-bar-wrap">
-              <div
-                className="day-bar"
-                style={{
-                  height: barHeight,
-                  background: getColor(day.taken, day.total),
-                }}
-              />
-              <span className="day-label">{dayNames[d.getDay()]}</span>
+      <div className="hist-body">
+        {streak > 1 && (
+          <div className="streak-box">
+            <span className="s-icon">🔥</span>
+            <div>
+              <strong>{streak} Day Streak!</strong>
+              <small>Keep it up — you're doing great!</small>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        )}
 
-      <div className="history-list">
-        {[...history].reverse().map(day => {
-          const pct = day.total === 0 ? 0 : Math.round((day.taken / day.total) * 100);
-          const color = getColor(day.taken, day.total);
+        <div className="chart-card">
+          <div className="chart-title">Weekly Overview</div>
+          <div className="bars">
+            {history.map((d) => {
+              const idx = new Date(d.date).getDay();
+              const barH = d.total === 0 ? 3 : Math.max(6, Math.round((d.taken / maxTotal) * 82));
+              const isToday = d.date === todayStr();
+              return (
+                <div key={d.date} className="bar-col">
+                  <div className="bar-fill" style={{ height: barH, background: barColor(d.taken, d.total) }} />
+                  <span className="bar-day" style={isToday ? { color: "#0984e3", fontWeight: 800 } : {}}>
+                    {days[idx]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="hist-sec">Daily Breakdown</div>
+        {[...history].reverse().map((d, i) => {
+          const p = d.total === 0 ? null : Math.round((d.taken / d.total) * 100);
+          const c = barColor(d.taken, d.total);
           return (
-            <div key={day.date} className="history-row">
+            <div key={d.date} className="hist-row" style={{ animationDelay: `${i * 0.05}s` }}>
               <div>
-                <p className="history-date">{formatHistoryDate(day.date)}</p>
-                <p className="history-count">{day.taken} of {day.total} doses taken</p>
+                <div className="hist-d">{formatDate(d.date)}</div>
+                <div className="hist-c">{d.total === 0 ? "No medicines scheduled" : `${d.taken} of ${d.total} doses taken`}</div>
               </div>
-              <span
-                className="history-pill"
-                style={{ background: color + "22", color }}
-              >
-                {day.total === 0 ? "—" : `${pct}%`}
-              </span>
+              {p !== null && <span className="hist-pct" style={{ background: c + "18", color: c }}>{p}%</span>}
             </div>
           );
         })}

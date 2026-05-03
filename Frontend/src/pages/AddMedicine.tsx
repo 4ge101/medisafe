@@ -4,15 +4,15 @@ import { useApp } from "../context/AppContext";
 import { generateId, todayStr } from "../utils/helpers";
 import type { TimeSlot } from "../types";
 
-const timeOptions = [
-  { value: "morning", label: "Morning", icon: "🌅", sub: "8:00 AM" },
-  { value: "afternoon", label: "Afternoon", icon: "☀️", sub: "1:00 PM" },
-  { value: "night", label: "Night", icon: "🌙", sub: "9:00 PM" },
-  { value: "custom", label: "Custom", icon: "⏰", sub: "Pick time" },
-];
+const ICONS = ["💊","💉","🌿","🧪","💙","⭐","🔴","🟠","🟢","🩺"];
+const COLORS = ["#ff6b6b","#ffa502","#00b894","#1e90ff","#a29bfe","#fd79a8","#00cec9","#e17055"];
 
-const ICONS = ["💊", "💉", "🌿", "🧪", "💙", "⭐", "🔴", "🟠"];
-const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7A072"];
+const TIME_OPTS = [
+  { slot: "morning", emoji: "🌅", name: "Morning", sub: "8:00 AM" },
+  { slot: "afternoon", emoji: "☀️", name: "Afternoon", sub: "1:00 PM" },
+  { slot: "night", emoji: "🌙", name: "Night", sub: "9:00 PM" },
+  { slot: "custom", emoji: "⏰", name: "Custom", sub: "Pick time" },
+];
 
 interface Props {
   onDone: () => void;
@@ -22,192 +22,140 @@ export default function AddMedicine({ onDone }: Props) {
   const { addMedicine, settings } = useApp();
   const [name, setName] = useState("");
   const [dosage, setDosage] = useState("1 pill");
-  const [timeSlot, setTimeSlot] = useState<TimeSlot>("morning");
+  const [slot, setSlot] = useState<TimeSlot>("morning");
   const [customTime, setCustomTime] = useState("08:00");
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState("💊");
-  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [icon, setIcon] = useState(ICONS[0]);
+  const [color, setColor] = useState(COLORS[0]);
+  const [showToast, setShowToast] = useState(false);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recRef = useRef<any>(null);
 
-  const handleVoiceInput = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser. Try Chrome.");
-      return;
-    }
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript;
-      setName(transcript);
-      setListening(false);
-    };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
-    recognition.start();
+  const handleVoice = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert("Voice input needs Chrome browser."); return; }
+    if (listening) { recRef.current?.stop(); setListening(false); return; }
+    const rec = new SR();
+    recRef.current = rec;
+    rec.lang = "en-US";
+    rec.onresult = (e: any) => { setName(e.results[0][0].transcript); setListening(false); };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    rec.start();
     setListening(true);
   };
 
-  const handleSubmit = () => {
+  const handleSave = () => {
     if (!name.trim() || !endDate) return;
     addMedicine({
       id: generateId(),
       name: name.trim(),
-      dosage,
-      timeSlot,
-      customTime: timeSlot === "custom" ? customTime : undefined,
+      dosage: dosage || "1 pill",
+      timeSlot: slot,
+      customTime: slot === "custom" ? customTime : undefined,
       startDate,
       endDate,
-      color: selectedColor,
-      icon: selectedIcon,
+      color,
+      icon,
     });
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setName("");
-      setDosage("1 pill");
-      setTimeSlot("morning");
-      setEndDate("");
-      onDone();
-    }, 1500);
+    setShowToast(true);
+    setTimeout(() => { setShowToast(false); onDone(); }, 1500);
   };
 
+  const slotName = TIME_OPTS.find((t) => t.slot === slot)?.name || "";
   const isValid = name.trim().length > 0 && endDate.length > 0;
 
   return (
     <div className={`add-page ${settings.simpleMode ? "simple-mode" : ""}`}>
-      <h1>Add Medicine</h1>
-      <p className="subtitle">Fill in your medicine details below</p>
+      <div className="add-hero">
+        <h1>Add Medicine</h1>
+        <p>Fill in your medicine details</p>
+      </div>
 
-      <div className="form-group">
-        <label className="form-label">💊 Medicine Name</label>
-        <input
-          className="form-input"
-          type="text"
-          placeholder="e.g. Paracetamol, Metformin..."
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <button
-          className={`voice-input-btn ${listening ? "listening" : ""}`}
-          onClick={handleVoiceInput}
-        >
-          🎤 {listening ? "Listening... tap to stop" : "Speak medicine name"}
+      <div className="add-body">
+        {/* Name */}
+        <div className="form-grp">
+          <label className="form-lbl">Medicine Name</label>
+          <input className="form-in" type="text" placeholder="e.g. Paracetamol, Metformin..." value={name} onChange={(e) => setName(e.target.value)} />
+          <button className={`voice-row ${listening ? "listening" : ""}`} onClick={handleVoice}>
+            {listening ? "🔴 Listening... tap to stop" : "🎤 Speak medicine name"}
+          </button>
+        </div>
+
+        {/* Dosage */}
+        <div className="form-grp">
+          <label className="form-lbl">Dosage</label>
+          <input className="form-in" type="text" placeholder="e.g. 1 pill, 2 tablets..." value={dosage} onChange={(e) => setDosage(e.target.value)} />
+        </div>
+
+        {/* Time slot */}
+        <div className="form-grp">
+          <label className="form-lbl">When to Take</label>
+          <div className="time-grid">
+            {TIME_OPTS.map((opt) => (
+              <button key={opt.slot} className={`time-opt ${slot === opt.slot ? "sel" : ""}`} onClick={() => setSlot(opt.slot as TimeSlot)}>
+                <span className="t-em">{opt.emoji}</span>
+                <span className="t-name">{opt.name}</span>
+                <span className="t-sub">{opt.sub}</span>
+              </button>
+            ))}
+          </div>
+          {slot === "custom" && (
+            <input className="form-in" type="time" value={customTime} onChange={(e) => setCustomTime(e.target.value)} style={{ marginTop: 8 }} />
+          )}
+        </div>
+
+        {/* Duration */}
+        <div className="form-grp">
+          <label className="form-lbl">Duration</label>
+          <div className="date-2col">
+            <div>
+              <span className="date-sm-lbl">Start Date</span>
+              <input className="form-in" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <span className="date-sm-lbl">End Date</span>
+              <input className="form-in" type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {/* Icon */}
+        <div className="form-grp">
+          <label className="form-lbl">Icon</label>
+          <div className="icons-row">
+            {ICONS.map((ic) => (
+              <button key={ic} className={`icon-opt ${icon === ic ? "sel" : ""}`} onClick={() => setIcon(ic)}>{ic}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color */}
+        <div className="form-grp">
+          <label className="form-lbl">Color</label>
+          <div className="colors-row">
+            {COLORS.map((c) => (
+              <button key={c} className={`color-opt ${color === c ? "sel" : ""}`} style={{ background: c }} onClick={() => setColor(c)} />
+            ))}
+          </div>
+        </div>
+
+        {/* Live preview */}
+        <div className="preview-strip" style={{ background: color + "18", border: `1px solid ${color}40` }}>
+          <span style={{ fontSize: 28 }}>{icon}</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{name || "Medicine Name"}</div>
+            <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>{dosage || "Dosage"} · {slotName}</div>
+          </div>
+        </div>
+
+        <button className="save-btn" onClick={handleSave} disabled={!isValid}>
+          ✅ Save Medicine
         </button>
       </div>
 
-      <div className="form-group">
-        <label className="form-label">💉 Dosage</label>
-        <input
-          className="form-input"
-          type="text"
-          placeholder="e.g. 1 pill, 2 tablets, 5ml..."
-          value={dosage}
-          onChange={e => setDosage(e.target.value)}
-        />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">⏰ When to Take</label>
-        <div className="time-grid">
-          {timeOptions.map(opt => (
-            <button
-              key={opt.value}
-              className={`time-btn ${timeSlot === opt.value ? "selected" : ""}`}
-              onClick={() => setTimeSlot(opt.value as TimeSlot)}
-            >
-              <span className="time-btn-icon">{opt.icon}</span>
-              <span className="time-btn-label">{opt.label}</span>
-              <span className="time-btn-label" style={{ opacity: 0.7, fontSize: 11 }}>{opt.sub}</span>
-            </button>
-          ))}
-        </div>
-        {timeSlot === "custom" && (
-          <input
-            className="form-input"
-            style={{ marginTop: 10 }}
-            type="time"
-            value={customTime}
-            onChange={e => setCustomTime(e.target.value)}
-          />
-        )}
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">📅 Duration</label>
-        <div className="date-row">
-          <div>
-            <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Start</label>
-            <input
-              className="form-input"
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>End</label>
-            <input
-              className="form-input"
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={e => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">🎨 Icon & Color</label>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          {ICONS.map(icon => (
-            <button
-              key={icon}
-              onClick={() => setSelectedIcon(icon)}
-              style={{
-                fontSize: 28, border: "2px solid",
-                borderColor: selectedIcon === icon ? "var(--primary)" : "transparent",
-                borderRadius: 10, padding: 6, cursor: "pointer",
-                background: "var(--hover-bg)",
-              }}
-            >
-              {icon}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {COLORS.map(color => (
-            <button
-              key={color}
-              onClick={() => setSelectedColor(color)}
-              style={{
-                width: 34, height: 34, borderRadius: "50%", background: color,
-                border: selectedColor === color ? "3px solid var(--text)" : "3px solid transparent",
-                cursor: "pointer",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      <button className="submit-btn" onClick={handleSubmit} disabled={!isValid}>
-        ✅ Save Medicine
-      </button>
-
-      {showSuccess && (
-        <div className="success-toast">✅ Medicine added!</div>
-      )}
+      {showToast && <div className="toast-fixed">✅ Medicine added successfully!</div>}
     </div>
   );
 }
