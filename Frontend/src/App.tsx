@@ -1,95 +1,118 @@
-import { useState, useEffect, useRef } from "react";
-import "./App.css";
-import { AppProvider, useApp } from "./context/AppContext";
-import Navbar from "./components/Navbar";
-import ReminderPopup from "./components/ReminderPopup";
-import Home from "./pages/Home";
-import AddMedicine from "./pages/AddMedicine";
-import Schedule from "./pages/Schedule";
-import History from "./pages/History";
-import Settings from "./pages/Settings";
-import type { Medicine } from "./types";
-import { getTimeSlotTime, todayStr } from "./utils/helpers";
-
-type Page = "home" | "add" | "schedule" | "history" | "settings";
-
-function AppInner() {
-  const [page, setPage] = useState<Page>("home");
-  const { settings, medicines, markDose } = useApp();
-  const [activeReminder, setActiveReminder] = useState<{ medicine: Medicine; timeSlot: string } | null>(null);
-  const firedRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    const check = () => {
-      const now = new Date();
-      const t = todayStr();
-      medicines.forEach((med) => {
-        if (med.startDate > t || med.endDate < t) return;
-        const { hour, minute } = getTimeSlotTime(med.timeSlot, med.customTime);
-        if (now.getHours() === hour && now.getMinutes() === minute) {
-          const key = `${med.id}_${med.timeSlot}_${t}`;
-          if (!firedRef.current.has(key)) {
-            firedRef.current.add(key);
-            setActiveReminder({ medicine: med, timeSlot: med.timeSlot });
-          }
-        }
-      });
-    };
-    check();
-    const timer = setInterval(check, 30000);
-    return () => clearInterval(timer);
-  }, [medicines]);
-
-  useEffect(() => {
-    const checkNight = () => {
-      const h = new Date().getHours();
-      if (h >= 20 || h < 6) {
-        // night mode auto-handled in context
-      }
-    };
-    checkNight();
-    const t = setInterval(checkNight, 60000);
-    return () => clearInterval(t);
-  }, []);
-
-  const handleTaken = () => {
-    if (!activeReminder) return;
-    markDose(activeReminder.medicine.id, todayStr(), activeReminder.timeSlot, "taken");
-    setActiveReminder(null);
-  };
-
-  const handleSnooze = () => {
-    const rem = activeReminder;
-    if (!rem) return;
-    setActiveReminder(null);
-    setTimeout(() => setActiveReminder(rem), settings.snoozeMinutes * 60 * 1000);
-  };
-
-  return (
-    <div className={`app-shell ${settings.nightMode ? "night-mode" : ""} ${settings.simpleMode ? "simple-mode" : ""}`}>
-      {page === "home" && <Home onNavigate={(p) => setPage(p as Page)} />}
-      {page === "add" && <AddMedicine onDone={() => setPage("home")} />}
-      {page === "schedule" && <Schedule />}
-      {page === "history" && <History />}
-      {page === "settings" && <Settings />}
-      <Navbar current={page} onChange={setPage} />
-      {activeReminder && (
-        <ReminderPopup
-          medicine={activeReminder.medicine}
-          timeSlot={activeReminder.timeSlot}
-          onTaken={handleTaken}
-          onSnooze={handleSnooze}
-          onDismiss={() => setActiveReminder(null)}
-        />
-      )}
-    </div>
-  );
-}
+import React, { useState, useEffect, useRef } from "react";
+import "./styles/global.css";
+import { useResumeData } from "./hooks/useResumeData";
+import { TemplateName, ThemeMode } from "./types";
+import Sidebar from "./components/Sidebar";
+import PersonalForm from "./components/forms/PersonalForm";
+import ExperienceForm from "./components/forms/ExperienceForm";
+import EducationForm from "./components/forms/EducationForm";
+import SkillsForm from "./components/forms/SkillsForm";
+import ProjectsForm from "./components/forms/ProjectsForm";
+import CertificationsForm from "./components/forms/CertificationsForm";
+import AchievementsForm from "./components/forms/AchievementsForm";
+import ResumePreview from "./components/ResumePreview";
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState("personal");
+  const [template, setTemplate] = useState<TemplateName>("modern");
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const previewRef = useRef<{ downloadPDF: () => void } | null>(null);
+
+  const {
+    data,
+    updatePersonal,
+    updateExperience, addExperience, removeExperience,
+    updateEducation, addEducation, removeEducation,
+    updateSkills,
+    updateProject, addProject, removeProject,
+    updateCertification, addCertification, removeCertification,
+    updateAchievement, addAchievement, removeAchievement,
+    toggleSection,
+    reorderSections,
+    resetData,
+  } = useResumeData();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((t) => (t === "light" ? "dark" : "light"));
+  }
+
+  function handleDownload() {
+    const btn = document.querySelector(".preview-toolbar .btn-primary") as HTMLButtonElement;
+    if (btn) btn.click();
+  }
+
   return (
-    <AppProvider>
-      <AppInner />
-    </AppProvider>
+    <div className="app-layout">
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        sectionOrder={data.sectionOrder}
+        activeSections={data.activeSections}
+        onToggleSection={toggleSection}
+        onReorder={reorderSections}
+        onDownload={handleDownload}
+        onReset={resetData}
+      />
+
+      <div className="form-panel">
+        <PersonalForm
+          data={data.personal}
+          onChange={updatePersonal}
+          visible={activeTab === "personal"}
+        />
+        <ExperienceForm
+          items={data.experience}
+          onUpdate={updateExperience}
+          onAdd={addExperience}
+          onRemove={removeExperience}
+          visible={activeTab === "experience"}
+        />
+        <EducationForm
+          items={data.education}
+          onUpdate={updateEducation}
+          onAdd={addEducation}
+          onRemove={removeEducation}
+          visible={activeTab === "education"}
+        />
+        <SkillsForm
+          skills={data.skills}
+          onUpdate={updateSkills}
+          visible={activeTab === "skills"}
+        />
+        <ProjectsForm
+          items={data.projects}
+          onUpdate={updateProject}
+          onAdd={addProject}
+          onRemove={removeProject}
+          visible={activeTab === "projects"}
+        />
+        <CertificationsForm
+          items={data.certifications}
+          onUpdate={updateCertification}
+          onAdd={addCertification}
+          onRemove={removeCertification}
+          visible={activeTab === "certifications"}
+        />
+        <AchievementsForm
+          items={data.achievements}
+          onUpdate={updateAchievement}
+          onAdd={addAchievement}
+          onRemove={removeAchievement}
+          visible={activeTab === "achievements"}
+        />
+      </div>
+
+      <ResumePreview
+        data={data}
+        template={template}
+        onTemplateChange={setTemplate}
+        theme={theme}
+        onThemeChange={toggleTheme}
+      />
+    </div>
   );
 }
