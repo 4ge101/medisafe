@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { PersonalInfo } from "../../types";
+import { PersonalInfo } from "../../types/index";
 
 interface Props {
   data: PersonalInfo;

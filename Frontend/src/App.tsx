@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./styles/global.css";
 import { useResumeData } from "./hooks/useResumeData";
-import { TemplateName, ThemeMode } from "./types";
+import { TemplateName, ThemeMode } from "./types/index";
 import Sidebar from "./components/Sidebar";
 import PersonalForm from "./components/forms/PersonalForm";
 import ExperienceForm from "./components/forms/ExperienceForm";

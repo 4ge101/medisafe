@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ResumeData, SectionType } from "../types";
+import { ResumeData, SectionType } from "../types/index";
 import { defaultData, saveToStorage, loadFromStorage } from "../utils/helpers";
 
 export function useResumeData() {

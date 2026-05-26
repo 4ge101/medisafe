@@ -1,5 +1,5 @@
 import React from "react";
-import { Certification } from "../../types";
+import { Certification } from "../../types/index";
 
 interface Props {
   items: Certification[];
@@ -18,7 +18,7 @@ export default function CertificationsForm({ items, onUpdate, onAdd, onRemove, v
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Add
+          Add 
         </button>
       </div>
 

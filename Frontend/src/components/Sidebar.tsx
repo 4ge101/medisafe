@@ -1,5 +1,5 @@
 import React from "react";
-import { SectionType } from "../../types";
+import { SectionType } from "../../types/index";
 
 interface Props {
   activeTab: string;

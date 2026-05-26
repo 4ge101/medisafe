@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { ResumeData, TemplateName, ThemeMode } from "../../types";
+import { ResumeData, TemplateName, ThemeMode } from "../../types/index";
 import ModernTemplate from "../templates/ModernTemplate";
 import MinimalTemplate from "../templates/MinimalTemplate";
 import CreativeTemplate from "../templates/CreativeTemplate";
