@@ -5,6 +5,70 @@
   font-family: 'Georgia', 'Times New Roman', serif;
 }
 
+.home-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 20px;
+}
+
+.loading-bar {
+  width: 200px;
+  height: 2px;
+  background: #222;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: #d93025;
+  animation: loading 1.2s ease-in-out infinite;
+}
+
+@keyframes loading {
+  to { left: 140%; }
+}
+
+.home-loading p {
+  color: #666;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.home-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.home-error p {
+  color: #666;
+  font-size: 15px;
+  font-family: Arial, sans-serif;
+  line-height: 1.8;
+}
+
+.home-error a {
+  color: #d93025;
+}
+
+.home-error code {
+  background: #1a1a1a;
+  padding: 2px 6px;
+  font-size: 13px;
+  color: #aaa;
+}
+
 .home-divider {
   border: none;
   border-top: 1px solid #333;
@@ -23,6 +87,17 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-right: 20px;
+}
+
+.featured-source {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #d93025;
+  font-family: Arial, sans-serif;
+  margin-bottom: 10px;
+  display: block;
 }
 
 .featured-headline {
@@ -94,6 +169,7 @@
 
 .featured-image-wrap {
   overflow: hidden;
+  max-height: 420px;
 }
 
 .featured-image-wrap img {
@@ -105,8 +181,8 @@
 
 .home-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 32px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 28px;
 }
 
 .story-card {
@@ -119,14 +195,25 @@
   aspect-ratio: 16/9;
   object-fit: cover;
   display: block;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.story-card-source {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #d93025;
+  font-family: Arial, sans-serif;
+  display: block;
+  margin-bottom: 6px;
 }
 
 .story-card-headline {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   color: #e8e0d0;
-  line-height: 1.2;
+  line-height: 1.25;
   margin: 0 0 10px;
 }
 
@@ -142,8 +229,8 @@
 .story-card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
-  color: #666;
+  color: #555;
   font-family: Arial, sans-serif;
 }
